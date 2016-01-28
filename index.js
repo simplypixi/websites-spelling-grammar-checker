@@ -21,9 +21,8 @@ var websitesPromises = websites.map(function(website){
 	return request('http://' + website);
 });
 
-// node . wiadomosci.wp.pl pudelek.pl wiadomosci.gazeta.pl onet.pl
-//Get 5 addresses from sites
-console.log("wczytywanie adresów z każdej strony")
+
+console.log("Get addresses on websites")
 Promise.all(websitesPromises).then(function(results){
 	var addressesPerWebsite = [];
 	results.forEach(function(website, index){
@@ -41,13 +40,12 @@ Promise.all(websitesPromises).then(function(results){
 		addressesPerWebsite.push(tmp);
 	});
 
-	console.log("pobieranie stron");
+	console.log("Reading websites");
 	var addressesPerWebsitePromises = addressesPerWebsite.map(function(websiteAddresses, index){
 		return websiteAddresses.map(function(address){
 			if(address.indexOf('http:') > -1  || address.indexOf('https:') > -1){
 				return request({
 						    uri: address
-/*						    encoding: 'binary'*/
 						});
 			} else {
 				var protocol = 'http://'+websites[index];
@@ -55,18 +53,19 @@ Promise.all(websitesPromises).then(function(results){
 				return request({
 						    uri: protocol + address
 						});
-				//return requesta(protocol + address);
 			}
 		});
 	});
 
 	addressesPerWebsitePromises = [].concat.apply([], addressesPerWebsitePromises);
-	console.log("sprawdzanie błędów");
+	console.log("Checking mistakes");
 	Promise.all(addressesPerWebsitePromises).then(function(pages){
 		var mistakes = {};
-		var wrongWordArr = [];
 		var currentPage = 0;
-		mistakes[websites[currentPage]] = 0;
+		mistakes[websites[currentPage]] = {
+			fails: [],
+			count: 0
+		}
 
 		pages.forEach(function(page, index){
 	        $ = cheerio.load(page);
@@ -76,21 +75,23 @@ Promise.all(websitesPromises).then(function(results){
 	            words.filter(function(word){
 	            	return word.length > 4;
 	            }).forEach(function(word){
-	            	if(!spellchecker.check(word) && wrongWordArr.indexOf(word) == -1){
-	            		mistakes[websites[currentPage]]++;
-	            		wrongWordArr.push(word);
+	            	if(!spellchecker.check(word) && mistakes[websites[currentPage]].fails.indexOf(word) == -1 && word[0] !== word[0].toUpperCase()){
+	            		mistakes[websites[currentPage]].count++;
+	            		mistakes[websites[currentPage]].fails.push(word);
 	            	}
 	            });
 	        });
-	        wrongWordArr = [];
 			if(index%5 === 0 && index !== 0 && currentPage !== websites.length){
 				currentPage++;
-				mistakes[websites[currentPage]] = 0;
+				mistakes[websites[currentPage]] = {
+					fails: [],
+					count: 0
+				}
 			}
 		})
-		console.log("==========");
+		console.log("===== SCORE =====");
 		for(var mistake in mistakes){
-			console.log(mistake,": ", mistakes[mistake], "błędów");
+			console.log(mistake,": ", mistakes[mistake].count, "mistakes ->", mistakes[mistake].fails.slice(0,5).join(', '), '...');
 		}
 	});
 });
