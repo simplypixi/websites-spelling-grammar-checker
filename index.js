@@ -61,7 +61,7 @@ Promise.all(websitesPromises).then(function(results){
 	});
 
 	addressesPerWebsitePromises = [].concat.apply([], addressesPerWebsitePromises);
-	console.log("sprawdzanie błędów", addressesPerWebsitePromises);
+	console.log("sprawdzanie błędów");
 	Promise.all(addressesPerWebsitePromises).then(function(pages){
 		var mistakes = {};
 		var wrongWordArr = [];
@@ -72,7 +72,7 @@ Promise.all(websitesPromises).then(function(results){
 	        $ = cheerio.load(page);
 	        $('p').each(function(paragraph) {
 	            var words = $(this).children().remove().end()
-	            .text().toString("utf8").trim().replace(/\n/g, ' ').replace(/\r/g, ' ').replace(/\s\s+/g, ' ').replace(/[`~!@#$%^&*()_|+\–\-=?;:'”"„,.<>\{\}\[\]\\\/]/g, '').split(' ');
+	            .text().toString("utf8").trim().replace(/(?:\r\n|\r|\n)/g, ' ').replace(/\s\s+/g, ' ').replace(/[`~!@#$%^&*()_|+\–\-=?;:'”"„,.<>\{\}\[\]\\\/]/g, '').split(' ');
 	            words.filter(function(word){
 	            	return word.length > 4;
 	            }).forEach(function(word){
